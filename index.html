@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="单位转换">
+<meta name="theme-color" content="#0f172a">
+<title>单位转换</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #ffffff; --text: #111827; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #2563eb; --accent-soft: #e8efff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --muted: #94a3b8;
+      --line: #334155; --accent: #60a5fa; --accent-soft: #1e3a5f;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", system-ui, sans-serif; }
+  body {
+    padding: calc(env(safe-area-inset-top) + 16px) calc(env(safe-area-inset-right) + 16px)
+             calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 16px);
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 4px 0 16px; font-weight: 700; }
+
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    background: var(--line); padding: 4px; border-radius: 12px; margin-bottom: 16px; }
+  .tab { border: 0; background: transparent; color: var(--muted); font-size: 15px;
+    font-weight: 600; padding: 10px 4px; border-radius: 9px; cursor: pointer; }
+  .tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .field { display: block; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .row { display: flex; align-items: center; gap: 8px;
+    border: 1.5px solid var(--line); border-radius: 12px; padding: 4px 12px; }
+  .row:focus-within { border-color: var(--accent); }
+  .row input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+    color: var(--text); font-size: 30px; font-weight: 600; padding: 8px 0; font-variant-numeric: tabular-nums; }
+  .unit { font-size: 18px; color: var(--muted); font-weight: 600; }
+  .sign { border: 0; background: var(--accent-soft); color: var(--accent); font-size: 18px;
+    font-weight: 700; width: 40px; height: 36px; border-radius: 8px; cursor: pointer; }
+
+  .swap { display: flex; justify-content: center; margin: 8px 0; color: var(--muted); font-size: 20px; }
+
+  .toggle { display: flex; gap: 6px; margin-bottom: 14px; }
+  .toggle button { flex: 1; border: 1.5px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 10px; padding: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .toggle button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  h2 { font-size: 14px; color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td { padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  tr:last-child td { border-bottom: 0; }
+  td:last-child { text-align: right; color: var(--muted); }
+  tr.tap { cursor: pointer; }
+  tr.tap:active td { background: var(--accent-soft); }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>单位转换</h1>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" data-tab="temp">🌡️ 温度</button>
+    <button class="tab" data-tab="len">📏 长度</button>
+    <button class="tab" data-tab="vol">🥤 容量</button>
+    <button class="tab" data-tab="wt">⚖️ 重量</button>
+  </div>
+
+  <!-- 温度 -->
+  <section class="panel" id="temp">
+    <div class="card">
+      <div class="field">
+        <label>华氏度 Fahrenheit</label>
+        <div class="row">
+          <button class="sign" data-for="f" aria-label="正负号">±</button>
+          <input id="f" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">°F</span>
+        </div>
+      </div>
+      <div class="swap">⇅</div>
+      <div class="field">
+        <label>摄氏度 Celsius</label>
+        <div class="row">
+          <button class="sign" data-for="c" aria-label="正负号">±</button>
+          <input id="c" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">°C</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>常用参考（点一下填入）</h2>
+      <table id="tempRef"></table>
+    </div>
+  </section>
+
+  <!-- 长度 -->
+  <section class="panel" id="len">
+    <div class="card">
+      <div class="field">
+        <label>英寸 Inches</label>
+        <div class="row">
+          <input id="in" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">in</span>
+        </div>
+      </div>
+      <div class="swap">⇅</div>
+      <div class="field">
+        <label>厘米 Centimeters</label>
+        <div class="row">
+          <input id="cm" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">cm</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>常用参考（点一下填入）</h2>
+      <table id="lenRef"></table>
+      <div class="note">1 in = 2.54 cm（精确值）</div>
+    </div>
+  </section>
+
+  <!-- 容量 -->
+  <section class="panel" id="vol">
+    <div class="toggle">
+      <button data-std="us">美制 US fl oz</button>
+      <button data-std="uk">英制 UK fl oz</button>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>液量盎司 Fluid ounces</label>
+        <div class="row">
+          <input id="oz" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">fl oz</span>
+        </div>
+      </div>
+      <div class="swap">⇅</div>
+      <div class="field">
+        <label>毫升 Milliliters</label>
+        <div class="row">
+          <input id="ml" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">ml</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>常用参考（点一下填入）</h2>
+      <table id="volRef"></table>
+      <div class="note" id="volNote"></div>
+    </div>
+  </section>
+
+  <!-- 重量 -->
+  <section class="panel" id="wt">
+    <div class="card">
+      <div class="field">
+        <label>磅 Pounds</label>
+        <div class="row">
+          <input id="lb" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">lb</span>
+        </div>
+      </div>
+      <div class="swap">⇅</div>
+      <div class="field">
+        <label>公斤 Kilograms</label>
+        <div class="row">
+          <input id="kg" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">kg</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>盎司 Ounces（重量）</label>
+        <div class="row">
+          <input id="woz" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">oz</span>
+        </div>
+      </div>
+      <div class="swap">⇅</div>
+      <div class="field">
+        <label>克 Grams</label>
+        <div class="row">
+          <input id="g" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+          <span class="unit">g</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>常用参考（点一下填入）</h2>
+      <table id="wtRef"></table>
+      <div class="note">1 lb = 16 oz = 453.59 g；1 oz ≈ 28.35 g。重量的 oz 和液体的 fl oz 不是同一个单位。鸡蛋按美国 Large 规格估算，矿泉水按 16.9 fl oz（500 ml）一瓶、只算水不算瓶子。</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function parse(s) {
+    s = String(s).trim().replace(/,/g, '.').replace(/[−–—]/g, '-');
+    if (s === '' || s === '-' || s === '.' || s === '-.') return null;
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  function fmt(n, d) {
+    if (n === null) return '';
+    var r = Number(n.toFixed(d));
+    if (Object.is(r, -0)) r = 0;
+    return String(r);
+  }
+
+  // 一对输入框双向联动
+  function pair(aId, bId, aToB, bToA, digits) {
+    var a = $(aId), b = $(bId);
+    a.addEventListener('input', function () { var v = parse(a.value); b.value = v === null ? '' : fmt(aToB(v), digits); });
+    b.addEventListener('input', function () { var v = parse(b.value); a.value = v === null ? '' : fmt(bToA(v), digits); });
+    return {
+      setA: function (v) { a.value = fmt(v, digits); b.value = fmt(aToB(v), digits); },
+      refresh: function () { var v = parse(a.value); b.value = v === null ? '' : fmt(aToB(v), digits); }
+    };
+  }
+
+  // 温度
+  var temp = pair('f', 'c', function (f) { return (f - 32) * 5 / 9; }, function (c) { return c * 9 / 5 + 32; }, 1);
+  // 长度
+  var len = pair('in', 'cm', function (i) { return i * 2.54; }, function (c) { return c / 2.54; }, 2);
+  // 容量
+  var ML = { us: 29.5735295625, uk: 28.4130625 };
+  var std = store.get('uc-std') === 'uk' ? 'uk' : 'us';
+  var vol = pair('oz', 'ml', function (o) { return o * ML[std]; }, function (m) { return m / ML[std]; }, 1);
+
+  // ± 按钮（iPhone 数字键盘没有负号）
+  document.querySelectorAll('.sign').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var inp = $(btn.dataset.for);
+      var s = inp.value.trim();
+      inp.value = s.charAt(0) === '-' ? s.slice(1) : '-' + s;
+      inp.dispatchEvent(new Event('input'));
+    });
+  });
+
+  // 参考表
+  function buildRef(tableId, rows, onTap) {
+    var t = $(tableId); t.innerHTML = '';
+    rows.forEach(function (r) {
+      var tr = document.createElement('tr'); tr.className = 'tap';
+      tr.innerHTML = '<td>' + r[0] + '</td><td>' + r[1] + '</td>';
+      tr.addEventListener('click', function () { onTap(r[2]); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      t.appendChild(tr);
+    });
+  }
+  buildRef('tempRef', [
+    ['0 °F', '−17.8 °C', 0], ['32 °F 结冰', '0 °C', 32], ['50 °F', '10 °C', 50],
+    ['68 °F 室温', '20 °C', 68], ['77 °F', '25 °C', 77], ['86 °F', '30 °C', 86],
+    ['98.6 °F 体温', '37 °C', 98.6], ['100.4 °F 发烧', '38 °C', 100.4],
+    ['212 °F 沸水', '100 °C', 212], ['350 °F 烤箱', '176.7 °C', 350], ['400 °F 烤箱', '204.4 °C', 400]
+  ], temp.setA);
+  buildRef('lenRef', [
+    ['1 in', '2.54 cm', 1], ['6 in', '15.24 cm', 6], ['12 in（1 ft）', '30.48 cm', 12],
+    ['24 in', '60.96 cm', 24], ['27 in 显示器', '68.58 cm', 27], ['32 in', '81.28 cm', 32],
+    ['55 in 电视', '139.7 cm', 55], ['5 ft 6 in（66 in）', '167.64 cm', 66]
+  ], len.setA);
+
+  function renderVol() {
+    document.querySelectorAll('.toggle button').forEach(function (b) { b.classList.toggle('on', b.dataset.std === std); });
+    var k = ML[std];
+    var list = std === 'us' ? [1, 1.6, 2, 4, 8, 12, 16, 16.9, 20, 32, 64] : [1, 2, 4, 8, 12, 16, 20, 32, 64];
+    buildRef('volRef', list.map(function (o) {
+      var label = o + ' fl oz';
+      if (o === 1.6) label = '≈ 1.6 fl oz（1 个大鸡蛋液）';
+      if (o === 16.9) label += '（一瓶矿泉水）';
+      if (std === 'us' && o === 8) label += '（1 杯）';
+      if (std === 'us' && o === 12) label += '（罐装汽水）';
+      if (std === 'us' && o === 16) label += '（1 品脱）';
+      return [label, fmt(o * k, 1) + ' ml', o];
+    }), vol.setA);
+    $('volNote').textContent = std === 'us'
+      ? '美制：1 US fl oz ≈ 29.574 ml（美国商品标签用这个）'
+      : '英制：1 UK fl oz ≈ 28.413 ml';
+    vol.refresh();
+  }
+  document.querySelectorAll('.toggle button').forEach(function (b) {
+    b.addEventListener('click', function () { std = b.dataset.std; store.set('uc-std', std); renderVol(); });
+  });
+  renderVol();
+
+  // 重量
+  var LB = 0.45359237, OZ = 28.349523125;
+  var wlb = pair('lb', 'kg', function (x) { return x * LB; }, function (k) { return k / LB; }, 2);
+  var woz = pair('woz', 'g', function (x) { return x * OZ; }, function (g) { return g / OZ; }, 1);
+  buildRef('wtRef', [
+    ['1 oz', '28.3 g', ['oz', 1]], ['4 oz', '113.4 g', ['oz', 4]], ['8 oz', '226.8 g', ['oz', 8]],
+    ['≈ 2 oz 1 个大鸡蛋（带壳）', '≈ 57 g', ['oz', 2]],
+    ['16 oz（1 lb）', '453.6 g', ['oz', 16]], ['17.6 oz 一瓶矿泉水', '≈ 500 g', ['g', 500]], ['1 lb', '0.45 kg', ['lb', 1]], ['5 lb', '2.27 kg', ['lb', 5]],
+    ['10 lb', '4.54 kg', ['lb', 10]], ['50 lb 托运行李', '22.68 kg', ['lb', 50]],
+    ['150 lb 体重', '68.04 kg', ['lb', 150]]
+  ], function (v) {
+    if (v[0] === 'g') { $('g').value = v[1]; $('g').dispatchEvent(new Event('input')); }
+    else (v[0] === 'oz' ? woz : wlb).setA(v[1]);
+  });
+
+  // 标签页
+  function show(tab) {
+    if (!$(tab)) tab = 'temp';
+    document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('active', p.id === tab); });
+    store.set('uc-tab', tab);
+  }
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.dataset.tab); });
+  });
+  show(store.get('uc-tab') || 'temp');
+})();
+</script>
+</body>
+</html>
